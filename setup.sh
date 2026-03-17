@@ -2,13 +2,15 @@
 set -euo pipefail
 
 # =============================================================================
-# lil-clang setup: install prerequisites, clone LLVM 20, and apply WASI patches
+# lil-clang setup: install prerequisites, clone upstream LLVM, clone wasi-libc
 #
 # Run this ONCE before running build.sh. It:
 #   1. Checks/installs build dependencies (cmake, ninja, python3)
-#   2. Clones upstream LLVM 20 from the official repository
-#   3. Applies WASI compatibility patches (no third-party forks needed)
-#   4. Clones wasi-libc source
+#   2. Clones upstream LLVM 20 from the official repo
+#   3. Clones wasi-libc source
+#
+# After running this, you need to manually apply WASI compatibility patches
+# to llvm-src/ before building. See PATCHING.md for a file-by-file guide.
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -16,16 +18,16 @@ cd "$SCRIPT_DIR"
 
 OS="$(uname -s)"
 
-# LLVM release to target. Change this to update LLVM version.
 LLVM_RELEASE_TAG="llvmorg-20.1.0"
-LLVM_BRANCH="release/20.x"
 
 echo "================================================================"
 echo "lil-clang setup"
 echo "================================================================"
 echo ""
-echo "This will set up everything needed to build Clang as a .wasm file."
-echo "LLVM version: ${LLVM_RELEASE_TAG}"
+echo "This will clone upstream LLVM ${LLVM_RELEASE_TAG} and wasi-libc."
+echo ""
+echo "After setup, you must manually patch llvm-src/ for WASI."
+echo "See PATCHING.md for exactly what to change."
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -69,61 +71,27 @@ echo ""
 echo "================================================================"
 echo "Step 2: Cloning upstream LLVM ${LLVM_RELEASE_TAG}"
 echo "================================================================"
-echo ""
-echo "This is a shallow clone (~500 MB) of the official LLVM monorepo."
-echo "We clone upstream directly — no third-party forks."
-echo ""
 
 if [ -d llvm-src ] && [ -f llvm-src/llvm/CMakeLists.txt ]; then
     echo "llvm-src already exists, skipping clone."
 else
     git clone --depth 1 --branch "${LLVM_RELEASE_TAG}" \
         https://github.com/llvm/llvm-project.git llvm-src
-    echo "Cloned LLVM ${LLVM_RELEASE_TAG}"
+    echo "Cloned LLVM ${LLVM_RELEASE_TAG}."
 fi
 
-# Show LLVM version
 if [ -f llvm-src/cmake/Modules/LLVMVersion.cmake ]; then
     LLVM_VER=$(grep 'LLVM_VERSION_MAJOR' llvm-src/cmake/Modules/LLVMVersion.cmake | head -1 | grep -o '[0-9]*')
     echo "LLVM major version: ${LLVM_VER}"
 fi
 
 # ---------------------------------------------------------------------------
-# Step 3: Apply WASI compatibility patches
+# Step 3: Clone wasi-libc source
 # ---------------------------------------------------------------------------
 echo ""
 echo "================================================================"
-echo "Step 3: Applying WASI compatibility patches"
+echo "Step 3: Cloning wasi-libc"
 echo "================================================================"
-echo ""
-echo "Upstream LLVM uses POSIX APIs (signals, fork, exec, etc.) that"
-echo "don't exist in WASI. We apply targeted patches to stub these out."
-echo ""
-echo "See patches/apply-wasi-compat.py for details on each modification."
-echo "Based on work from the LLVM RFC for WebAssembly self-hosting:"
-echo "  https://discourse.llvm.org/t/rfc-building-llvm-for-webassembly/79073"
-echo ""
-
-python3 "${SCRIPT_DIR}/patches/apply-wasi-compat.py" llvm-src
-
-# Tag the patched state so we can verify/diff later
-cd llvm-src
-git add -A
-git -c user.email="lil-clang@local" -c user.name="lil-clang" \
-    commit -m "Apply WASI compatibility patches (lil-clang)" --allow-empty 2>/dev/null || true
-cd "$SCRIPT_DIR"
-
-# ---------------------------------------------------------------------------
-# Step 4: Clone wasi-libc source
-# ---------------------------------------------------------------------------
-echo ""
-echo "================================================================"
-echo "Step 4: Cloning wasi-libc source"
-echo "================================================================"
-echo ""
-echo "wasi-libc is the C standard library for WASI (based on musl)."
-echo "It provides printf, malloc, file I/O, etc."
-echo ""
 
 if [ -d wasi-libc-src ] && [ -f wasi-libc-src/Makefile ]; then
     echo "wasi-libc-src already exists, skipping clone."
@@ -134,7 +102,9 @@ fi
 
 echo ""
 echo "================================================================"
-echo "Setup complete! Now run:"
+echo "Setup complete!"
+echo ""
+echo "Run:"
 echo "  ./build.sh"
 echo ""
 echo "Expected build time: ~45-90 min on Apple M1 (8 GB RAM)"
