@@ -1,0 +1,22 @@
+# Source trees (cloned by setup.sh)
+llvm-src/
+wasi-libc-src/
+
+# wasi-sdk download
+wasi-sdk-*/
+
+# Build directories
+llvm-tblgen-build/
+llvm-build/
+compiler-rt-build/
+wasi-libc-build/
+libcxx-build/
+wasi-prefix/
+llvm-prefix/
+
+# Generated toolchain files
+Toolchain-WASI.cmake
+Toolchain-WASI-LLVM.cmake
+
+# Build outputs
+output/
