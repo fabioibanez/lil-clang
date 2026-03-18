@@ -2,15 +2,12 @@
 set -euo pipefail
 
 # =============================================================================
-# lil-clang setup: install prerequisites, clone upstream LLVM, clone wasi-libc
+# lil-clang setup: install prerequisites, clone LLVM (WASI-patched), clone wasi-libc
 #
 # Run this ONCE before running build.sh. It:
 #   1. Checks/installs build dependencies (cmake, ninja, python3)
-#   2. Clones upstream LLVM 20 from the official repo
+#   2. Clones WASI-patched LLVM 20 from fabioibanez/llvm-project
 #   3. Clones wasi-libc source
-#
-# After running this, you need to manually apply WASI compatibility patches
-# to llvm-src/ before building. See PATCHING.md for a file-by-file guide.
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -18,16 +15,14 @@ cd "$SCRIPT_DIR"
 
 OS="$(uname -s)"
 
-LLVM_RELEASE_TAG="llvmorg-20.1.0"
+LLVM_REPO="https://github.com/fabioibanez/llvm-project.git"
+LLVM_BRANCH="llvmorg-20.1.0+wasi"
 
 echo "================================================================"
 echo "lil-clang setup"
 echo "================================================================"
 echo ""
-echo "This will clone upstream LLVM ${LLVM_RELEASE_TAG} and wasi-libc."
-echo ""
-echo "After setup, you must manually patch llvm-src/ for WASI."
-echo "See PATCHING.md for exactly what to change."
+echo "This will clone LLVM (${LLVM_BRANCH}) with WASI patches and wasi-libc."
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -65,19 +60,19 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 2: Clone upstream LLVM
+# Step 2: Clone WASI-patched LLVM
 # ---------------------------------------------------------------------------
 echo ""
 echo "================================================================"
-echo "Step 2: Cloning upstream LLVM ${LLVM_RELEASE_TAG}"
+echo "Step 2: Cloning LLVM (${LLVM_BRANCH}, WASI-patched)"
 echo "================================================================"
 
 if [ -d llvm-src ] && [ -f llvm-src/llvm/CMakeLists.txt ]; then
     echo "llvm-src already exists, skipping clone."
 else
-    git clone --depth 1 --branch "${LLVM_RELEASE_TAG}" \
-        https://github.com/llvm/llvm-project.git llvm-src
-    echo "Cloned LLVM ${LLVM_RELEASE_TAG}."
+    git clone --depth 1 --branch "${LLVM_BRANCH}" \
+        "${LLVM_REPO}" llvm-src
+    echo "Cloned LLVM ${LLVM_BRANCH}."
 fi
 
 if [ -f llvm-src/cmake/Modules/LLVMVersion.cmake ]; then
@@ -102,11 +97,10 @@ fi
 
 echo ""
 echo "================================================================"
-echo "Setup complete!"
+echo "Setup complete! WASI patches are already applied in the cloned repo."
 echo ""
 echo "Run:"
 echo "  ./build.sh"
 echo ""
-echo "Expected build time: ~45-90 min on Apple M1 (8 GB RAM)"
 echo "Disk space needed:   ~50 GB"
 echo "================================================================"
