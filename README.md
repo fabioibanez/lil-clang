@@ -2,8 +2,6 @@
 
 Compile LLVM/Clang into a single `.wasm` binary that runs in the browser via Wasmer (or any WASI runtime).
 
-**No third-party forks.** Uses upstream LLVM 20 with a small, auditable patch set for WASI compatibility.
-
 ## Quick start
 
 ```bash
@@ -40,9 +38,9 @@ Upstream LLVM calls POSIX APIs that don't exist in WASI Preview 1:
 - **File metadata** (`umask()`, `fchown()`) — limited file permission model
 - **Password database** (`getpwnam_r()`) — no user accounts
 
-The patch script (`patches/apply-wasi-compat.py`) wraps these calls in `#if !defined(__wasi__)` guards and provides stub implementations. This is the same approach used by the [LLVM RFC for WebAssembly self-hosting](https://discourse.llvm.org/t/rfc-building-llvm-for-webassembly/79073) (PR #92677), which has been proposed but not yet merged upstream.
+For now, we are using the patched [`llvm-src`](https://github.com/YoWASP/llvm-project/tree/97196c8eeb1d495fa43bb8af2fb26af5ef5b89fb) maintained by [whitequark] (https://github.com/whitequark)
 
-Once upstream merges these changes, the patches become unnecessary.
+Once upstream merges these changes, the patches become unnecessary. There is an open [patch](https://github.com/llvm/llvm-project/pull/92677) for this.
 
 ## Requirements
 
@@ -57,13 +55,3 @@ Once upstream merges these changes, the patches become unnecessary.
 ./build.sh clean   # removes build artifacts (~40 GB), preserves source
 rm -rf llvm-src wasi-libc-src   # remove source clones too
 ```
-
-## Updating LLVM version
-
-1. Edit `LLVM_RELEASE_TAG` in `setup.sh`
-2. Re-run `./setup.sh` (delete `llvm-src/` first)
-3. If the patch script fails, check the warnings — the affected files may have changed between versions
-
-## License
-
-The build scripts in this repo are MIT-licensed. LLVM itself is under the Apache 2.0 License with LLVM Exceptions.

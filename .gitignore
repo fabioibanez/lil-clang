@@ -18,5 +18,3 @@ llvm-prefix/
 Toolchain-WASI.cmake
 Toolchain-WASI-LLVM.cmake
 
-# Build outputs
-output/

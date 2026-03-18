@@ -23,6 +23,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Use locally-installed CMake if available (wasi-libc requires ≥ 3.26)
+if [ -d "$HOME/cmake-3.31.6-linux-x86_64/bin" ]; then
+    export PATH="$HOME/cmake-3.31.6-linux-x86_64/bin:$PATH"
+fi
+
 # Reproducible builds: use the git commit timestamp
 export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct 2>/dev/null || date +%s)
 
@@ -151,6 +156,8 @@ cat >Toolchain-WASI.cmake <<END
 set(CMAKE_SYSTEM_NAME WASI)
 set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_SYSTEM_PROCESSOR wasm32)
+set(WASI 1)
+set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
@@ -365,7 +372,7 @@ cmake -G Ninja -B llvm-build -S llvm-src/llvm \
     -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF \
     -DLLVM_TOOL_YAML2OBJ_BUILD=OFF \
     -DLLVM_ENABLE_PROJECTS="clang;lld" \
-    -DCLANG_ENABLE_ARCMT=OFF \
+    -DCLANG_ENABLE_OBJC_REWRITER=OFF \
     -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
     -DCLANG_INCLUDE_TESTS=OFF \
     -DCLANG_BUILD_TOOLS=OFF \
@@ -385,7 +392,7 @@ cmake --build llvm-build -j${JOBS} --target clang-resource-headers
 
 echo ""
 echo "LLVM/Clang/LLD cross-compilation complete!"
-ls -lh llvm-build/bin/llvm-driver.wasm 2>/dev/null || echo "(check llvm-build/bin/ for output)"
+ls -lh llvm-build/bin/llvm.wasm 2>/dev/null || echo "(check llvm-build/bin/ for output)"
 
 # =============================================================================
 # STAGE 3: Build the sysroot (C/C++ standard libraries)
@@ -426,16 +433,15 @@ echo "================================================================"
 echo "STAGE 3b: Building wasi-libc"
 echo "================================================================"
 
-mkdir -p wasi-libc-build
-make -C wasi-libc-src \
-    CC="ccache ${WASI_SDK_PATH}/bin/clang" \
-    AR="${WASI_SDK_PATH}/bin/ar" \
-    NM="${WASI_SDK_PATH}/bin/nm" \
-    TARGET_TRIPLE="${WASI_TARGET}" \
-    BUILTINS_LIB="$(pwd)/wasi-prefix/usr/lib/wasm32-unknown-wasip1/libclang_rt.builtins.a" \
-    SYSROOT="$(pwd)/wasi-prefix/usr" \
-    OBJDIR="$(pwd)/wasi-libc-build" \
-    -j${JOBS}
+cmake -G Ninja -B wasi-libc-build -S wasi-libc-src \
+    -DCMAKE_C_COMPILER="${WASI_SDK_PATH}/bin/clang" \
+    -DCMAKE_AR="${WASI_SDK_PATH}/bin/ar" \
+    -DCMAKE_NM="${WASI_SDK_PATH}/bin/nm" \
+    -DCMAKE_RANLIB="${WASI_SDK_PATH}/bin/ranlib" \
+    -DTARGET_TRIPLE="${WASI_TARGET}" \
+    -DBUILTINS_LIB="$(pwd)/wasi-prefix/usr/lib/wasm32-unknown-wasip1/libclang_rt.builtins.a" \
+    -DCMAKE_INSTALL_PREFIX=wasi-prefix/usr
+cmake --build wasi-libc-build -j${JOBS} --target install
 
 echo ""
 echo "================================================================"
@@ -481,8 +487,8 @@ echo "================================================================"
 OUTPUT_DIR="${SCRIPT_DIR}/output"
 mkdir -p "${OUTPUT_DIR}"
 
-if [ -f llvm-build/bin/llvm-driver.wasm ]; then
-    cp llvm-build/bin/llvm-driver.wasm "${OUTPUT_DIR}/clang.wasm"
+if [ -f llvm-build/bin/llvm.wasm ]; then
+    cp llvm-build/bin/llvm.wasm "${OUTPUT_DIR}/clang.wasm"
     echo "Clang binary: ${OUTPUT_DIR}/clang.wasm ($(du -h "${OUTPUT_DIR}/clang.wasm" | cut -f1))"
 fi
 

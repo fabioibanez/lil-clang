@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Run this ONCE before running build.sh. It:
 #   1. Checks/installs build dependencies (cmake, ninja, python3)
-#   2. Clones WASI-patched LLVM 20 from fabioibanez/llvm-project
+#   2. Clones WASI-patched LLVM 22 from YoWASP/llvm-project
 #   3. Clones wasi-libc source
 # =============================================================================
 
@@ -15,8 +15,8 @@ cd "$SCRIPT_DIR"
 
 OS="$(uname -s)"
 
-LLVM_REPO="https://github.com/fabioibanez/llvm-project.git"
-LLVM_BRANCH="llvmorg-20.1.0+wasi"
+LLVM_REPO="https://github.com/YoWASP/llvm-project.git"
+LLVM_BRANCH="llvmorg-22.1.0+wasm"
 
 echo "================================================================"
 echo "lil-clang setup"
@@ -76,7 +76,7 @@ else
 fi
 
 if [ -f llvm-src/cmake/Modules/LLVMVersion.cmake ]; then
-    LLVM_VER=$(grep 'LLVM_VERSION_MAJOR' llvm-src/cmake/Modules/LLVMVersion.cmake | head -1 | grep -o '[0-9]*')
+    LLVM_VER=$(grep 'set(LLVM_VERSION_MAJOR' llvm-src/cmake/Modules/LLVMVersion.cmake | head -1 | grep -o '[0-9]*')
     echo "LLVM major version: ${LLVM_VER}"
 fi
 
@@ -88,7 +88,7 @@ echo "================================================================"
 echo "Step 3: Cloning wasi-libc"
 echo "================================================================"
 
-if [ -d wasi-libc-src ] && [ -f wasi-libc-src/Makefile ]; then
+if [ -d wasi-libc-src ] && [ -f wasi-libc-src/CMakeLists.txt ]; then
     echo "wasi-libc-src already exists, skipping clone."
 else
     git clone --depth 1 https://github.com/WebAssembly/wasi-libc.git wasi-libc-src
