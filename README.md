@@ -13,7 +13,7 @@ Compile LLVM/Clang into a single `.wasm` binary that runs in the browser via Was
 
 After building, `output/` contains:
 
-- **`clang.wasm`** (~23 MB) — multicall LLVM binary that acts as clang, clang++, lld, llvm-ar, llvm-nm, etc.
+- **`clang.wasm`** (~73 MB) — multicall LLVM binary that acts as clang, clang++, lld, llvm-ar, llvm-nm, etc.
 - **`sysroot.tar.gz`** — C/C++ headers and libraries to mount in the WASI virtual filesystem
 
 ## Usage
@@ -41,13 +41,6 @@ Upstream LLVM calls POSIX APIs that don't exist in WASI Preview 1:
 For now, we are using the patched [`llvm-src`](https://github.com/YoWASP/llvm-project/tree/97196c8eeb1d495fa43bb8af2fb26af5ef5b89fb) maintained by [whitequark] (https://github.com/whitequark)
 
 Once upstream merges these changes, the patches become unnecessary. There is an open [patch](https://github.com/llvm/llvm-project/pull/92677) for this.
-
-## Requirements
-
-- macOS (ARM64 or x86_64) or Linux x86_64
-- CMake >= 3.20, Ninja, Python 3
-- 8+ GB RAM (parallelism auto-adjusts)
-- ~50 GB free disk space
 
 ## Cleaning up
 
