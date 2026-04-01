@@ -60,7 +60,7 @@ fi
 # ---------------------------------------------------------------------------
 
 # wasi-sdk version — the native cross-compiler that outputs wasm32 code.
-WASI_VER=29
+WASI_VER=32
 
 # Detect host platform
 OS="$(uname -s)"
@@ -153,34 +153,14 @@ WASI_LDFLAGS_LLVM="${WASI_LDFLAGS_LLVM} -flto -Wl,--strip-all"
 # ---------------------------------------------------------------------------
 
 cat >Toolchain-WASI.cmake <<END
-set(CMAKE_SYSTEM_NAME WASI)
-set(CMAKE_SYSTEM_VERSION 1)
-set(CMAKE_SYSTEM_PROCESSOR wasm32)
-set(WASI 1)
-set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
-
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
-
-set(CMAKE_C_COMPILER ${WASI_SDK_PATH}/bin/clang)
-set(CMAKE_C_COMPILER_TARGET ${WASI_TARGET})
-set(CMAKE_CXX_COMPILER ${WASI_SDK_PATH}/bin/clang++)
-set(CMAKE_CXX_COMPILER_TARGET ${WASI_TARGET})
-set(CMAKE_LINKER ${WASI_SDK_PATH}/bin/wasm-ld)
-set(CMAKE_AR ${WASI_SDK_PATH}/bin/ar)
-set(CMAKE_RANLIB ${WASI_SDK_PATH}/bin/ranlib)
-
+include(${WASI_SDK_PATH}/share/cmake/wasi-sdk-p1.cmake)
 set(CMAKE_C_FLAGS "${WASI_CFLAGS}")
 set(CMAKE_CXX_FLAGS "${WASI_CFLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${WASI_LDFLAGS}")
 END
 
-cp Toolchain-WASI.cmake Toolchain-WASI-LLVM.cmake
-cat >>Toolchain-WASI-LLVM.cmake <<END
-
-# Aggressive flags for LLVM build (LTO, large stack, mmap emulation)
+cat >Toolchain-WASI-LLVM.cmake <<END
+include(${WASI_SDK_PATH}/share/cmake/wasi-sdk-p1.cmake)
 set(CMAKE_C_FLAGS "${WASI_CFLAGS_LLVM}")
 set(CMAKE_CXX_FLAGS "${WASI_CFLAGS_LLVM}")
 set(CMAKE_EXE_LINKER_FLAGS "${WASI_LDFLAGS_LLVM}")
