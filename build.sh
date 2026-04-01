@@ -405,7 +405,7 @@ cmake -G Ninja -B compiler-rt-build -S llvm-src/compiler-rt \
     -DCOMPILER_RT_ENABLE_IOS=OFF \
     -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
     -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-    -DCMAKE_INSTALL_PREFIX=wasi-prefix/usr
+    -DCMAKE_INSTALL_PREFIX="$(pwd)/wasi-prefix/usr"
 cmake --build compiler-rt-build -j${JOBS} --target install
 
 echo ""
@@ -420,7 +420,7 @@ cmake -G Ninja -B wasi-libc-build -S wasi-libc-src \
     -DCMAKE_RANLIB="${WASI_SDK_PATH}/bin/ranlib" \
     -DTARGET_TRIPLE="${WASI_TARGET}" \
     -DBUILTINS_LIB="$(pwd)/wasi-prefix/usr/lib/wasm32-unknown-wasip1/libclang_rt.builtins.a" \
-    -DCMAKE_INSTALL_PREFIX=wasi-prefix/usr
+    -DCMAKE_INSTALL_PREFIX="$(pwd)/wasi-prefix/usr"
 cmake --build wasi-libc-build -j${JOBS} --target install
 
 echo ""
@@ -452,7 +452,7 @@ cmake -G Ninja -B libcxx-build -S llvm-src/runtimes \
     -DLIBCXXABI_SILENT_TERMINATE:BOOL=ON \
     -DLIBCXX_LIBDIR_SUFFIX="/${WASI_TARGET}" \
     -DLIBCXXABI_LIBDIR_SUFFIX="/${WASI_TARGET}" \
-    -DCMAKE_INSTALL_PREFIX=wasi-prefix/usr
+    -DCMAKE_INSTALL_PREFIX="$(pwd)/wasi-prefix/usr"
 cmake --build libcxx-build -j${JOBS} --target install
 
 # =============================================================================
